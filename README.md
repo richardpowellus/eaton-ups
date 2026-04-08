@@ -28,7 +28,7 @@ The UPS must be connected via USB with the **libusb0** driver installed. Run the
 .\setup.ps1
 ```
 
-This downloads [libusb-win32](https://github.com/mcuee/libusb-win32/releases) (LGPL), installs the USB driver for Eaton UPS devices, and places `libusb0.dll` next to the executable.
+This downloads [libusb-win32](https://github.com/mcuee/libusb-win32/releases) (LGPL), installs the USB driver and device filter for Eaton UPS devices, and places `libusb0.dll` next to the executable.
 
 <details>
 <summary>Manual setup (without the script)</summary>
