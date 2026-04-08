@@ -241,20 +241,35 @@ func (u *UPS) ReadStatus() ([]StatusItem, error) {
 		{"Load", "PowerSummary.PercentLoad", "%", 1, "%.0f", false},
 		{"Active Power", "PowerConverter.Output.ActivePower", "W", 1, "%.0f", false},
 		{"Apparent Power", "PowerConverter.Output.ApparentPower", "VA", 1, "%.0f", false},
+		{"Efficiency", "PowerConverter.Output.0x0069", "%", 1, "%.0f", false},
 		{"Battery Voltage", "PowerSummary.Voltage", "V", 10, "%.1f", false},
 		{"Battery Charge", "PowerSummary.RemainingCapacity", "%", 1, "%.0f", false},
 		{"Runtime", "PowerSummary.RunTimeToEmpty", "", 0, "", false},
+		{"Internal Temp", "PowerSummary.Temperature", "", 10, "", false},
+		{"Inverter Temp", "PowerConverter.Inverter.Temperature", "", 10, "", false},
+		{"Rated Power", "Flow.ConfigActivePower", "W", 1, "%.0f", false},
+		{"Rated VA", "Flow.ConfigApparentPower", "VA", 1, "%.0f", false},
 		{"HE Mode", "PowerConverter.Input.Switchable", "", 1, "", false},
 	}
 	for _, q := range qs {
 		f := u.findFeature(q.path)
 		if f == nil {
-			// Input Voltage isn't in Feature reports — read report 0x3A directly
+			// Input Voltage isn't in Feature reports -- read report 0x3A directly
 			if q.name == "Input Voltage" {
 				if data, err := u.GetFeatureReport(0x3A); err == nil && len(data) >= 7 {
 					raw := uint16(data[5]) | uint16(data[6])<<8
 					items = append(items, StatusItem{q.name,
 						fmt.Sprintf("%.1f", float64(raw)/10), q.unit})
+				}
+			}
+			// HE Mode isn't in Feature reports -- read report 0x4F directly
+			if q.name == "HE Mode" {
+				if data, err := u.GetFeatureReport(0x4F); err == nil && len(data) >= 2 {
+					v := "Disabled"
+					if data[1] != 0 {
+						v = "Enabled"
+					}
+					items = append(items, StatusItem{q.name, v, ""})
 				}
 			}
 			continue
@@ -276,6 +291,9 @@ func (u *UPS) ReadStatus() ([]StatusItem, error) {
 				v = "Enabled"
 			}
 			items = append(items, StatusItem{q.name, v, ""})
+		} else if strings.HasSuffix(q.name, "Temp") {
+			celsius := float64(val) / q.div
+			items = append(items, StatusItem{q.name, fmt.Sprintf("%.1f", celsius), "C"})
 		} else if q.div > 1 {
 			items = append(items, StatusItem{q.name,
 				fmt.Sprintf(q.fmt, float64(val)/q.div), q.unit})
