@@ -108,7 +108,7 @@ Decoded (skipping report ID byte):
 go build -o eaton-ups.exe .
 ```
 
-Requires Go 1.21+. No CGO needed — the app loads `libusb0.dll` at runtime via syscall.
+Requires Go 1.26+. No CGO needed — the app loads `libusb0.dll` at runtime via syscall.
 
 ## Architecture
 
