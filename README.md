@@ -23,7 +23,9 @@ Should work with other Eaton/MGE UPS models that use the same USB HID Power Devi
 
 The UPS must be connected via USB with the **libusb0** driver installed. Eaton's SetUPS tool installs this driver automatically. If you have SetUPS installed, the driver is already in place — but **close SetUPS before running this tool** (they can't share the USB device).
 
-The `libusb0.dll` file is included in this repo (64-bit, from [libusb-win32](https://github.com/mcuee/libusb-win32)). Place it next to the executable.
+You also need `libusb0.dll` (64-bit) placed next to the executable. You can get it from either:
+- **Eaton SetUPS** — already at `C:\Program Files (x86)\Eaton\SetUPS\bin\libusb0.dll` (32-bit only; works if you build with `GOARCH=386`)
+- **[libusb-win32](https://github.com/mcuee/libusb-win32/releases)** — download the latest release zip, the 64-bit DLL is in `bin\amd64\libusb0.dll` (LGPL-licensed)
 
 ## Usage
 
@@ -101,7 +103,7 @@ Requires Go 1.21+. No CGO needed — the app loads `libusb0.dll` at runtime via 
 | `hid.go` | HID report descriptor parser and value extraction |
 | `usages.go` | USB HID usage name tables (Power Device, Battery System, MGE vendor) |
 | `main.go` | CLI commands |
-| `libusb0.dll` | 64-bit libusb-win32 runtime (from [mcuee/libusb-win32](https://github.com/mcuee/libusb-win32)) |
+| `libusb0.dll` | 64-bit libusb-win32 runtime ([download separately](https://github.com/mcuee/libusb-win32/releases), LGPL) |
 
 The app works by:
 1. Finding the UPS via libusb0 device enumeration (VID `0463`, PID `FFFF`)
