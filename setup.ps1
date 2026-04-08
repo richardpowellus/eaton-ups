@@ -5,23 +5,16 @@
     Downloads libusb-win32 from GitHub, extracts the 64-bit DLL and driver,
     and installs libusb0 as a device filter for the Eaton UPS.
     No Eaton software or driver signing required.
-    Must be run as Administrator.
+    Self-elevates to Administrator if needed.
 .EXAMPLE
     .\setup.ps1
 #>
 
-# Always pause before closing so the user can read output
-trap { Write-Host "`n  ERROR: $_" -ForegroundColor Red }
-$null = Register-EngineEvent PowerShell.Exiting -Action { cmd /c pause }
-
-# Check admin
+# Self-elevate if not already admin
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host ""
-    Write-Host "  This script must be run as Administrator." -ForegroundColor Red
-    Write-Host "  Right-click PowerShell → 'Run as administrator', then try again."
-    cmd /c pause
-    exit 1
+    Start-Process powershell -ArgumentList "-NoExit -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
 }
 
 $ErrorActionPreference = "Stop"
@@ -29,7 +22,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tempDir = Join-Path $env:TEMP "eaton-ups-setup"
 
 Write-Host ""
-Write-Host "  Eaton UPS — Driver Setup" -ForegroundColor Cyan
+Write-Host "  Eaton UPS - Driver Setup" -ForegroundColor Cyan
 Write-Host "  ========================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -42,7 +35,7 @@ try {
     if (-not $asset) {
         throw "Could not find libusb-win32 binary zip in latest release ($($release.tag_name))"
     }
-    Write-Host "        Latest: $($release.tag_name) — $($asset.name)" -ForegroundColor Green
+    Write-Host "        Latest: $($release.tag_name) - $($asset.name)" -ForegroundColor Green
 
     # Step 2: Download
     Write-Host "  [2/4] Downloading..." -ForegroundColor Yellow
@@ -63,17 +56,19 @@ try {
 
     # Step 4: Install driver and device filter
     Write-Host "  [4/4] Installing USB driver..." -ForegroundColor Yellow
-    $sysDir = "$env:SystemRoot\System32\drivers"
-    Copy-Item (Join-Path $binDir "libusb0.sys") (Join-Path $sysDir "libusb0.sys") -Force
-    Write-Host "        Copied libusb0.sys to $sysDir" -ForegroundColor Green
 
-    # Remove stale service if left over from a previous install
+    # Stop and remove any existing libusb0 service first (frees the .sys file)
     $svc = Get-Service libusb0 -ErrorAction SilentlyContinue
     if ($svc) {
+        Write-Host "        Removing previous libusb0 driver..." -ForegroundColor Yellow
         sc.exe stop libusb0 2>&1 | Out-Null
         sc.exe delete libusb0 2>&1 | Out-Null
         Start-Sleep 2
     }
+
+    $sysDir = "$env:SystemRoot\System32\drivers"
+    Copy-Item (Join-Path $binDir "libusb0.sys") (Join-Path $sysDir "libusb0.sys") -Force
+    Write-Host "        Copied libusb0.sys" -ForegroundColor Green
 
     # Install libusb0 as a device filter (no signed INF needed)
     $filterExe = Join-Path $binDir "install-filter.exe"
